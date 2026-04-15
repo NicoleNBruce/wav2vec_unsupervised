@@ -150,3 +150,66 @@ While this repository *already* contained the custom orchestration wrappers (`ut
 
 3. **`data/checkpoints/timit/progress.checkpoint` Manipulation**:
    - We manually edited this state-tracking file using `sed` to delete the `train_gans:COMPLETED` flag. This proved to be the specific orchestration mechanism we had to bypass to force a secondary hyperparameter tuning run without accidentally wiping out the pre-processed TIMIT audio features.
+## 6. Experiment 3: Aggressive Adversarial Tuning
+
+In a final attempt to break the persistent mode collapse (where the generator produces the same few phonemes repeatedly to trick the discriminator), we launched **Experiment 3**. We explicitly handicapped the Discriminator and supercharged the Generator. 
+
+### 6.1 Hyperparameter Adjustments
+- **Generator Learning Rate (generator.optimizer.lr)**: Doubled from  .00004 to  .00008 so the generator could adapt faster to the discriminator's feedback.
+- **Gradient Penalty (gradient_penalty)**: Tripled from  .5 to 1.5 to enforce stricter bounds on the discriminator, hypothetically preventing it from overpowering the generator too early in training.
+
+### 6.2 Experiment 3 Results & Logs
+After 30,000 updates (~1.5 hours of training), the evaluation phase yielded the following:
+* **Validation PER:** 95.40%
+* **Test PER:** 94.97%
+
+Extracting the final metrics from gans_fresh_tune_3.log revealed a massive divergence:
+``json
+[valid][INFO] - {"epoch": 78, "valid_weighted_lm_ppl": "3979.99", "valid_lm_ppl": "249.791"}
+[train][INFO] - {"epoch": 78, "train_code_ppl": "4.955", "train_loss_dense_g": "3.931", "train_loss_dense_d": "0.205"}
+``
+
+### 6.3 Analysis: Why Did It Perform Worse?
+Despite aggressively trying to balance the adversarial tug-of-war, the model performed worse. The evaluation metrics above diagnose exactly what happened:
+1. **Catastrophic Language Model Perplexity Explosion**: The alid_weighted_lm_ppl exploded from ~168 to an unreadable **3979.99**. This means the phoneme sequences produced by the Generator made absolutely zero linguistic sense.
+2. **Overshooting the Minimum**: By doubling the Generator's learning rate, we likely destabilized its updates. Instead of carefully learning a nuanced mapping, the generator "overshot" the gradients and collapsed into an even lazier local minimum: just mapping pure silence or 4–5 disjointed characters (code_ppl = 4.955) endlessly to get the discriminator off its back.
+3. **Discriminator Dominance**: Even with the tripled gradient penalty, the Discriminator's loss (loss_dense_d = 0.205) still crushed the Generator's loss (loss_dense_g = 3.931).
+
+### 6.4 The Role of the Dataset (TIMIT)
+A fundamental constraint heavily contributing to this mode collapse is the dataset itself. 
+* **Wav2Vec-U Requirements**: Unsupervised speech recognition mathematically depends on massive, diverse datasets to form rich latent space representations. It generally requires hundreds or thousands of hours of unpaired audio (e.g., LibriSpeech 960h or Libri-Light 60k).
+* **TIMIT Limitations**: TIMIT is an extremely small dataset (roughly 5 hours of read speech). When the acoustic data is this sparse, the latent representations are too shallow. The Generator doesn't have enough variance in the acoustic features to learn a continuous mapping to the text phonemes. Consequently, the discriminator easily overfits and overpowers the generator, forcing the generator to completely give up. 
+
+**Conclusion**: While hyperparameter tuning limits damage, the architecture intrinsically struggles to converge when starved of data. Scaling up to a larger corpus like LibriSpeech is fundamentally required to give the Generator a fighting chance at solving the mode collapse.
+
+## 6. Experiment 3: Aggressive Adversarial Tuning
+
+In a final attempt to break the persistent mode collapse (where the generator produces the same few phonemes repeatedly to trick the discriminator), we launched **Experiment 3**. We explicitly handicapped the Discriminator and supercharged the Generator. 
+
+### 6.1 Hyperparameter Adjustments
+- **Generator Learning Rate (generator.optimizer.lr)**: Doubled from  .00004 to  .00008 so the generator could adapt faster to the discriminator's feedback.
+- **Gradient Penalty (gradient_penalty)**: Tripled from  .5 to 1.5 to enforce stricter bounds on the discriminator, hypothetically preventing it from overpowering the generator too early in training.
+
+### 6.2 Experiment 3 Results & Logs
+After 30,000 updates (~1.5 hours of training), the evaluation phase yielded the following:
+* **Validation PER:** 95.40%
+* **Test PER:** 94.97%
+
+Extracting the final metrics from gans_fresh_tune_3.log revealed a massive divergence:
+``json
+[valid][INFO] - {"epoch": 78, "valid_weighted_lm_ppl": "3979.99", "valid_lm_ppl": "249.791"}
+[train][INFO] - {"epoch": 78, "train_code_ppl": "4.955", "train_loss_dense_g": "3.931", "train_loss_dense_d": "0.205"}
+``
+
+### 6.3 Analysis: Why Did It Perform Worse?
+Despite aggressively trying to balance the adversarial tug-of-war, the model performed worse. The evaluation metrics above diagnose exactly what happened:
+1. **Catastrophic Language Model Perplexity Explosion**: The alid_weighted_lm_ppl exploded from ~168 to an unreadable **3979.99**. This means the phoneme sequences produced by the Generator made absolutely zero linguistic sense.
+2. **Overshooting the Minimum**: By doubling the Generator's learning rate, we likely destabilized its updates. Instead of carefully learning a nuanced mapping, the generator "overshot" the gradients and collapsed into an even lazier local minimum: just mapping pure silence or 4–5 disjointed characters (code_ppl = 4.955) endlessly to get the discriminator off its back.
+3. **Discriminator Dominance**: Even with the tripled gradient penalty, the Discriminator's loss (loss_dense_d = 0.205) still crushed the Generator's loss (loss_dense_g = 3.931).
+
+### 6.4 The Role of the Dataset (TIMIT)
+A fundamental constraint heavily contributing to this mode collapse is the dataset itself. 
+* **Wav2Vec-U Requirements**: Unsupervised speech recognition mathematically depends on massive, diverse datasets to form rich latent space representations. It generally requires hundreds or thousands of hours of unpaired audio (e.g., LibriSpeech 960h or Libri-Light 60k).
+* **TIMIT Limitations**: TIMIT is an extremely small dataset (roughly 5 hours of read speech). When the acoustic data is this sparse, the latent representations are too shallow. The Generator doesn't have enough variance in the acoustic features to learn a continuous mapping to the text phonemes. Consequently, the discriminator easily overfits and overpowers the generator, forcing the generator to completely give up. 
+
+**Conclusion**: While hyperparameter tuning limits damage, the architecture intrinsically struggles to converge when starved of data. Scaling up to a larger corpus like LibriSpeech is fundamentally required to give the Generator a fighting chance at solving the mode collapse.
