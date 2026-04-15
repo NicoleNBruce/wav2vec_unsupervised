@@ -1,0 +1,38 @@
+
+# Environment / External Repos
+venv/
+fairseq_/
+kenlm/
+rVADfast/
+
+# Data / Caches / Large Files
+__pycache__/
+*.pyc
+data/
+outputs/
+librispeech_dataset/
+prepared_data/
+timit/
+*.parquet
+*.wav
+*.wrd
+*.phn
+
+# Temporary Evaluation outputs
+test.txt
+valid.txt
+test_ground_truth.txt
+valid_ground_truth.txt
+eval_results.log
+*.log
+
+# Document drafts
+*.docx
+
+# Study / Sandbox Scripts (Unused in pipeline)
+gan_refactor/discriminator.py
+gan_refactor/generator.py
+gan_refactor/real_data.py
+gan_refactor/example_train_step.py
+gan_refactor/fairseq_wav2vec_u.py
+

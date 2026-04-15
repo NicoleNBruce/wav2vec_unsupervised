@@ -29,17 +29,28 @@ train_gans(){
     mark_in_progress "$step_name"
    
 
-   PYTHONPATH=$FAIRSEQ_ROOT PREFIX=w2v_unsup_gan_xp fairseq-hydra-train \
-    -m --config-dir "$FAIRSEQ_ROOT/examples/wav2vec/unsupervised/config/gan" \
+    PYTHONPATH=$FAIRSEQ_ROOT PREFIX=w2v_unsup_gan_xp fairseq-hydra-train \
+     --config-dir "$FAIRSEQ_ROOT/examples/wav2vec/unsupervised/config/gan" \
     --config-name w2vu \
     task.data="$CLUSTERING_DIR/precompute_pca512_cls128_mean_pooled" \
     task.text_data="$TEXT_OUTPUT/phones/" \
     task.kenlm_path="$TEXT_OUTPUT/phones/lm.phones.filtered.04.bin" \
     common.user_dir="$FAIRSEQ_ROOT/examples/wav2vec/unsupervised" \
-    model.code_penalty=6,10 model.gradient_penalty=0.5,1.0 \
-    model.smoothness_weight='1.5' 'common.seed=range(0,5)' \
-    +optimizer.groups.generator.optimizer.lr="[0.00004]" \
-    +optimizer.groups.discriminator.optimizer.lr="[0.00002]" \
+     dataset.batch_size=12 \
+        dataset.num_workers=0 \
+        dataset.required_batch_size_multiple=1 \
+        dataset.valid_subset=valid \
+        dataset.disable_validation=False \
+     optimization.max_update=30000 \
+     dataset.validate_interval_updates=1000 \
+     checkpoint.save_interval_updates=1000 \
+     common.log_interval=25 \
+     common.seed=0 \
+     model.code_penalty=2 \
+     model.gradient_penalty=1.5 \
+     model.smoothness_weight=1.0 \
+     +optimizer.groups.generator.optimizer.lr="[0.00008]" \
+     +optimizer.groups.discriminator.optimizer.lr="[0.00001]" \
     ~optimizer.groups.generator.optimizer.amsgrad \
     ~optimizer.groups.discriminator.optimizer.amsgrad \
     2>&1 | tee $RESULTS_DIR/training1.log

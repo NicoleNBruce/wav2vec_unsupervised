@@ -215,8 +215,8 @@ create_rVADfast() {
     
     log "removing silence from audios"
     mark_in_progress "$step_name"
-    python "$DIR_PATH/vads.py" -r $RVAD_ROOT < "$MANIFEST_DIR/train.tsv" > "$MANIFEST_DIR/train.vads"
-    python "$DIR_PATH/vads.py" -r $RVAD_ROOT < "$MANIFEST_DIR/valid.tsv" > "$MANIFEST_DIR/valid.vads"
+    python "$SCRIPT_ROOT/vads.py" -r $RVAD_ROOT < "$MANIFEST_DIR/train.tsv" > "$MANIFEST_DIR/train.vads"
+    python "$SCRIPT_ROOT/vads.py" -r $RVAD_ROOT < "$MANIFEST_DIR/valid.tsv" > "$MANIFEST_DIR/valid.vads"
     # Check if the command was successful
     if [ $? -eq 0 ]; then
         mark_completed "$step_name"
@@ -379,10 +379,14 @@ prepare_text() {
         return 0
     fi
 
-    log "audio preparation."
+    log "text preparation."
     mark_in_progress "$step_name"
     replace_std_endl $ADD_SELF_LOOP_SIMPLE  # this replaces the fixes error caused by the old script std::endl with \n
-    zsh "$FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/prepare_text.sh" $LANG $UNLABELLED_TEXT $TEXT_OUTPUT $MIN_PHONES $PHONEMIZER "$FASTTEXT_LIB_MODEL" 0.25 
+    # Ensure text prep can be safely re-run after partial failures.
+    rm -rf "$TEXT_OUTPUT"
+    mkdir -p "$TEXT_OUTPUT"
+
+    zsh "$FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/prepare_text.sh" "$LANG" "$UNLABELLED_TEXT" "$TEXT_OUTPUT" "$MIN_PHONES" "$PHONEMIZER" "$FASTTEXT_LIB_MODEL" 0.25
     # Check if the command was successful
     if [ $? -eq 0 ]; then
         mark_completed "$step_name"
