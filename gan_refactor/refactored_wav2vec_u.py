@@ -3,25 +3,23 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# ============================================================================
-# REFACTORED: wav2vec_u.py
+# Refactored: wav2vec_u.py
 #
 # Changes from original:
-#   1. New RealData class — owns all real phoneme sample preparation.
+#   1. New RealData class: owns all real phoneme sample preparation.
 #      Previously this logic was split between Generator.forward() (token_x
 #      creation) and Wav2vec_U.forward() (token_padding_mask, token_y).
 #
-#   2. Generator.forward() — removed token_x creation. Generator now only
+#   2. Generator.forward(): removed token_x creation. Generator now only
 #      produces fake samples from audio segment vectors, as it should.
 #
-#   3. Wav2vec_U.__init__() — instantiates RealData.
+#   3. Wav2vec_U.__init__(): instantiates RealData.
 #
-#   4. Wav2vec_U.forward() — delegates real sample preparation to RealData
+#   4. Wav2vec_U.forward(): delegates real sample preparation to RealData
 #      instead of handling it inline.
 #
 # Everything else (architecture, loss computation, Fairseq registration,
-# segmentation, config) is unchanged so the pipeline still works.
-# ============================================================================
+# segmentation, config) is unchanged.
 
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -43,9 +41,7 @@ from fairseq.modules import (
 )
 
 
-# ============================================================================
 # Segmentation (unchanged)
-# ============================================================================
 
 class SegmentationType(Enum):
     NONE = auto()
@@ -233,20 +229,17 @@ SEGMENT_FACTORY = {
 }
 
 
-# ============================================================================
-# NEW: RealData
+# RealData
 #
-# Responsibility: given a batch of real phoneme token sequences, produce
+#Responsibility: given a batch of real phoneme token sequences, produce
 # the one-hot vector representations that the Discriminator expects as
 # "real" samples.
 #
 # Previously this logic was split across two places:
-#   - token_x creation lived inside Generator.forward() (wrong — Generator
+#   - token_x creation lived inside Generator.forward() (wrong  Generator
 #     should only produce fake samples)
 #   - token_padding_mask was computed inline in Wav2vec_U.forward()
 #
-# Now all real-sample preparation lives here.
-# ============================================================================
 
 class RealData:
     """
@@ -306,13 +299,11 @@ class RealData:
         return token_x, token_padding_mask
 
 
-# ============================================================================
 # Discriminator (unchanged except for docstring clarification)
 #
 # Responsibility: given a sequence of phoneme distributions (either real
 # one-hot vectors from RealData, or soft distributions from Generator),
 # output a score per timestep indicating how likely the sequence is real.
-# ============================================================================
 
 class Discriminator(nn.Module):
     def __init__(self, dim, cfg: Wav2vec_UConfig):
@@ -390,7 +381,6 @@ class Discriminator(nn.Module):
         return x
 
 
-# ============================================================================
 # Generator (modified: token_x creation removed)
 #
 # Responsibility: given audio segment vectors, produce a probability
@@ -410,7 +400,6 @@ class Discriminator(nn.Module):
 #
 #   The `tokens` parameter has been removed from forward() since the
 #   Generator no longer needs to know about real token sequences at all.
-# ============================================================================
 
 class Generator(nn.Module):
     def __init__(self, input_dim, output_dim, cfg: Wav2vec_UConfig):
@@ -507,7 +496,6 @@ class Generator(nn.Module):
         return normed_feature
 
 
-# ============================================================================
 # Wav2vec_U — the orchestrator (modified to use RealData)
 #
 # This class coordinates Generator, RealData, and Discriminator.
@@ -520,7 +508,6 @@ class Generator(nn.Module):
 #      token_x and token_padding_mask inline
 #   3. forward: passes only (dense_x, dense_padding_mask) to Generator
 #      since Generator no longer accepts tokens
-# ============================================================================
 
 @register_model("wav2vec_u", dataclass=Wav2vec_UConfig)
 class Wav2vec_U(BaseFairseqModel):
@@ -721,7 +708,7 @@ class Wav2vec_U(BaseFairseqModel):
 
         orig_size = features.size(0) * features.size(1) - padding_mask.sum()
 
-        # CHANGED: Generator.forward() no longer accepts tokens (random_label).
+        # Changed: Generator.forward() no longer accepts tokens (random_label).
         # It only takes audio features and produces fake phoneme distributions.
         gen_result = self.generator(features, padding_mask)
 
@@ -749,7 +736,7 @@ class Wav2vec_U(BaseFairseqModel):
                 "padding_mask": dense_padding_mask,
             }
 
-        # CHANGED: real sample preparation now delegated to RealData.
+        # Changed: real sample preparation now delegated to RealData.
         # Previously: token_padding_mask and token_x were computed inline here.
         # Now: RealData.get_samples() owns this responsibility cleanly.
         token_x, token_padding_mask = self.real_data.get_samples(
