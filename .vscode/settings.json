@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^wsl -e bash -lc \"cd /mnt/c/Users/anoth/OneDrive\\\\ -\\\\ Ashesi\\\\ University/Grad\\\\ School\\\\ \\\\\\(ICS\\\\\\)/NLP/wav2vec_unsupervised; source /home/nikki/wav2vec_unsupervised/venv/bin/activate; python dataloader\\.py\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

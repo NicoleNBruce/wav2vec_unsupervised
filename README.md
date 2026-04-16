@@ -153,6 +153,14 @@ data --
  ```
 
 
+## GAN Architecture Refactoring
+
+This repository also contains a `gan_refactor` directory, which features a custom encapsulated refactor of the underlying `wav2vec_u.py` Fairseq model.
+
+- **`gan_refactor/refactored_wav2vec_u.py`**: A fully functional, refactored implementation of the Wav2Vec-U model.
+  - **Decoupled Logic**: Extracts real phoneme preparation out of the `Generator` and `Wav2vec_U` classes into a distinct `RealData` class.
+  - **Single-File Registration**: Remains compatible with the Fairseq registry (`@register_model`) meaning it can be plugged directly into the pipeline without breaking Hydra configs or framework dependencies.
+
 ## Summary
 
 1. Install the correct CUDA version for your GPU

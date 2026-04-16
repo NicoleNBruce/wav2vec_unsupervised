@@ -5,7 +5,11 @@
 
 # Main directories
 #.... directories to add to root.......
-DIR_PATH="$HOME/wav2vec_unsupervised" # the root directory of the project
+# Directory where launcher scripts live (workspace path)
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Installation root (where fairseq_, venv, kenlm, rVADfast are created)
+DIR_PATH="${DIR_PATH:-$HOME/wav2vec_unsupervised}" # the root directory of the installed project artifacts
 DATA_ROOT="$DIR_PATH/data" # a folder that stores all the data generated from pipeline
 FAIRSEQ_ROOT="$DIR_PATH/fairseq_" # the root directory of the fairseq repository
 KENLM_ROOT="$DIR_PATH/kenlm/build/bin"  # Path to KenLM installation
@@ -37,7 +41,7 @@ FASTTEXT_LIB_MODEL="$DIR_PATH/lid_model/lid.176.bin"  # the path to the language
 MODEL="$DIR_PATH/pre-trained/wav2vec_vox_new.pt" # the path to the pre-trained wav2vec model for audio feature extraction
 
 # Dataset specifics
-DATASET_NAME="librispeech"
+DATASET_NAME="timit"
 
 # Output directories (will be created if they don't exist)
 MANIFEST_DIR="$DATA_ROOT/manifests" # the directory that stores the manifest files for the audio dataset

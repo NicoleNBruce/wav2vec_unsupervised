@@ -87,6 +87,10 @@ setup_venv() {
     # Activate virtual environment
     source "$VENV_PATH/bin/activate"
 
+    # Set global pip timeouts to prevent Mac-to-Docker network dropouts
+    export PIP_DEFAULT_TIMEOUT=1000
+    pip config set global.timeout 1000
+
     log "Python virtual environment setup completed."
 }
 
@@ -176,8 +180,12 @@ install_pytorch_and_other_packages() {
     log "Installing PyTorch and related packages..."
     source "$VENV_PATH/bin/activate"
   
+    pip install --upgrade pip
     
-    pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url "https://download.pytorch.org/whl/cu121"
+    # pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url "https://download.pytorch.org/whl/cu121"
+    # pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url "https://download.pytorch.org/whl/cpu"
+    pip install --default-timeout=1000 torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url "https://download.pytorch.org/whl/cpu"
+
 
     # Install other required packages
     pip install "numpy<2" scipy tqdm sentencepiece soundfile librosa editdistance tensorboardX packaging soundfile
@@ -189,9 +197,13 @@ install_pytorch_and_other_packages() {
         pip install faiss-gpu
     fi
     
-    pip install ninja
-    pip install torchcodec
-    sudo apt install zsh
+    # pip install ninja
+    # pip install torchcodec
+    # sudo apt install zsh
+
+    pip install --default-timeout=1000 ninja torchcodec    
+    sudo apt-get install -y zsh
+    pip install --default-timeout=1000 nltk
     python -c "import nltk; nltk.download('averaged_perceptron_tagger_eng')" # we install this to efficiently use the phonemizer G2p
 
     log "PyTorch and related packages installed successfully."
@@ -217,6 +229,10 @@ install_fairseq() {
         git clone https://github.com/Ashesi-Org/fairseq_.git "$FAIRSEQ_ROOT" || { log "[ERROR] Failed to clone fairseq repository."; exit 1; }
         cd "$FAIRSEQ_ROOT"
     fi
+
+    # --- INJECT CUSTOM REFACTORED WAV2VEC_U ARCHITECTURE BEFORE INSTALL ---
+    log "Injecting custom refactored Wav2Vec-U architecture..."
+    cp "$SCRIPT_ROOT/gan_refactor/refactored_wav2vec_u.py" "$FAIRSEQ_ROOT/fairseq/models/wav2vec/wav2vec_u.py"
 
     log "Installing fairseq in editable mode..."
     pip install --editable ./ \
@@ -336,22 +352,24 @@ install_flashlight() {
         log "[INFO] nvcc not found. Switching to CPU-only build."
         use_cuda_flag="-DFLASHLIGHT_USE_CUDA=OFF"
         export USE_CUDA=0
+    fi
+
     # Explicitly point CMake to the Python executable in the venv for robustness
     local python_executable="$VENV_PATH/bin/python"
     cmake .. -DCMAKE_BUILD_TYPE=Release \
              -DPYTHON_EXECUTABLE="$python_executable" \
              "$flashlight_python_flag" \
-             "$use_cuda_flag" \
+             "$use_cuda_flag" 
 
     # Build the C++ library AND Python bindings
     log "Building Flashlight sequence (C++ and Python)..."
-    cmake --build . --config Release --parallel "$(nproc)" \
+    cmake --build . --config Release --parallel "$(nproc)" 
      
     # Install the Python Bindings into the ACTIVE virtual environment
     log "Installing Flashlight sequence Python bindings into venv..."
     # This assumes setup.py or similar is generated in the build directory.
     cd ..
-    pip install . \
+    pip install . 
 
     log "[PASS] Flashlight Python bindings installed via pip."
 
@@ -400,3 +418,4 @@ download_languageIdentification_model() {
     
     log "Language identification model downloaded successfully."
 }
+
